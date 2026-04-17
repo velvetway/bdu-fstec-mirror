@@ -2,7 +2,7 @@
   "total_vulnerabilities": 86664,
   "first_id": "BDU:2014-00001",
   "last_id": "BDU:2026-05547",
-  "last_update": "2025-12-31",
+  "last_update": "17.04.2026",
   "snapshot_date": "2026-04-18",
   "source": "https://bdu.fstec.ru/vul",
   "artifacts": {
@@ -13,8 +13,8 @@
     },
     "sqlite_gz": {
       "path": "data/bdu.sqlite.gz",
-      "size_bytes": 49164115,
-      "schema_version": 1,
+      "size_bytes": 50843340,
+      "schema_version": 3,
       "format": "gzip(SQLite with FTS5)"
     },
     "xlsx_vuls": {

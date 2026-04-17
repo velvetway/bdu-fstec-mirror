@@ -1,0 +1,86 @@
+name: Rebuild SQLite from XML
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "data/vulxml.xml.gz"
+      - "scripts/build_db.py"
+      - ".github/workflows/build-db.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Determine snapshot date
+        id: snap
+        run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Build SQLite snapshot
+        run: |
+          python scripts/build_db.py \
+            --xml data/vulxml.xml.gz \
+            --db data/bdu.sqlite \
+            --snapshot-date "${{ steps.snap.outputs.date }}"
+
+      - name: Update stats.json
+        run: |
+          python - <<'PY'
+          import gzip, json, pathlib, sqlite3
+          db = pathlib.Path("data/bdu.sqlite")
+          conn = sqlite3.connect(db)
+          total = conn.execute("SELECT value FROM metadata WHERE key='total'").fetchone()[0]
+          first = conn.execute("SELECT id FROM vulnerabilities ORDER BY id LIMIT 1").fetchone()[0]
+          last = conn.execute("SELECT id FROM vulnerabilities ORDER BY id DESC LIMIT 1").fetchone()[0]
+          latest = conn.execute(
+              "SELECT last_upd_date FROM vulnerabilities WHERE last_upd_date!='' "
+              "ORDER BY substr(last_upd_date,7,4) DESC, substr(last_upd_date,4,2) DESC, "
+              "substr(last_upd_date,1,2) DESC LIMIT 1"
+          ).fetchone()[0]
+          conn.close()
+          stats_path = pathlib.Path("data/stats.json")
+          stats = json.loads(stats_path.read_text())
+          stats["total_vulnerabilities"] = int(total)
+          stats["first_id"] = first
+          stats["last_id"] = last
+          # ``last_update`` keeps the human-readable source-side date in DD.MM.YYYY.
+          stats["last_update"] = latest
+          stats["snapshot_date"] = "${{ steps.snap.outputs.date }}"
+          stats.setdefault("artifacts", {})
+          stats["artifacts"]["xml_gz"] = {
+              "path": "data/vulxml.xml.gz",
+              "size_bytes": pathlib.Path("data/vulxml.xml.gz").stat().st_size,
+              "format": "gzip(XML)",
+          }
+          stats["artifacts"]["sqlite_gz"] = {
+              "path": "data/bdu.sqlite.gz",
+              "size_bytes": pathlib.Path("data/bdu.sqlite.gz").stat().st_size,
+              "schema_version": 3,
+              "format": "gzip(SQLite with FTS5)",
+          }
+          stats_path.write_text(json.dumps(stats, indent=2, ensure_ascii=False) + "\n")
+          PY
+
+      - name: Commit regenerated artifacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/bdu.sqlite.gz data/stats.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "data: rebuild SQLite snapshot (${{ steps.snap.outputs.date }})"
+          git push

@@ -28,6 +28,7 @@ CREATE TABLE vulnerabilities (
     description      TEXT,
     software_names   TEXT,
     vendors          TEXT,
+    cves_joined      TEXT,     -- space-joined CVE ids for FTS
     severity         TEXT,
     severity_level   INTEGER,   -- 1 низкий, 2 средний, 3 высокий, 4 критический
     cvss_score       REAL,
@@ -48,6 +49,14 @@ CREATE TABLE vulnerabilities (
 CREATE INDEX idx_vul_severity ON vulnerabilities(severity_level);
 CREATE INDEX idx_vul_cvss     ON vulnerabilities(cvss_score);
 CREATE INDEX idx_vul_year     ON vulnerabilities(identify_year);
+
+-- Composite covering indexes for the hot filter path:
+-- year + cvss + severity are the three commonly combined predicates.
+-- Leading column must be filtered; SQLite can then use the trailing column
+-- for the ORDER BY cvss_score DESC without a separate sort step.
+CREATE INDEX idx_vul_year_cvss     ON vulnerabilities(identify_year, cvss_score DESC);
+CREATE INDEX idx_vul_severity_cvss ON vulnerabilities(severity_level, cvss_score DESC);
+CREATE INDEX idx_vul_cvss_year     ON vulnerabilities(cvss_score DESC, identify_year);
 
 CREATE TABLE cves (
     bdu_id TEXT NOT NULL,
@@ -73,7 +82,7 @@ CREATE TABLE cwes (
 );
 
 CREATE VIRTUAL TABLE vulnerabilities_fts USING fts5(
-    name, description, software_names, vendors,
+    name, description, software_names, vendors, cves_joined,
     content = "vulnerabilities",
     content_rowid = "rowid",
     tokenize = "unicode61 remove_diacritics 2"
@@ -178,6 +187,16 @@ def build_db(xml_path: Path, db_path: Path, snapshot_date: str) -> int:
                 vendors.append(sv)
             software_rows.append((bdu_id, sn, sv, svv))
 
+        seen_cves: set[str] = set()
+        cves_for_vul: list[str] = []
+        for ident in vul.findall("identifiers/identifier"):
+            if ident.get("type", "").upper() == "CVE" and ident.text:
+                cve = ident.text.strip().upper()
+                if cve and cve not in seen_cves:
+                    cve_rows.append((bdu_id, cve))
+                    cves_for_vul.append(cve)
+                    seen_cves.add(cve)
+
         vul_rows.append(
             (
                 bdu_id,
@@ -185,6 +204,7 @@ def build_db(xml_path: Path, db_path: Path, snapshot_date: str) -> int:
                 description,
                 " ".join(software_names),
                 " ".join(vendors),
+                " ".join(cves_for_vul),
                 severity,
                 severity_level(severity),
                 cvss_score,
@@ -203,14 +223,6 @@ def build_db(xml_path: Path, db_path: Path, snapshot_date: str) -> int:
             )
         )
 
-        seen_cves: set[str] = set()
-        for ident in vul.findall("identifiers/identifier"):
-            if ident.get("type", "").upper() == "CVE" and ident.text:
-                cve = ident.text.strip().upper()
-                if cve and cve not in seen_cves:
-                    cve_rows.append((bdu_id, cve))
-                    seen_cves.add(cve)
-
         seen_cwes: set[str] = set()
         for cwe_ident in vul.findall("cwes/cwe/identifier"):
             if cwe_ident.text:
@@ -223,11 +235,11 @@ def build_db(xml_path: Path, db_path: Path, snapshot_date: str) -> int:
 
     conn.executemany(
         """INSERT INTO vulnerabilities
-           (id, name, description, software_names, vendors,
+           (id, name, description, software_names, vendors, cves_joined,
             severity, severity_level, cvss_score, cvss_vector,
             identify_date, publication_date, last_upd_date, identify_year,
             solution, status, exploit_status, fix_status, has_exploit, has_fix, sources)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         vul_rows,
     )
     conn.executemany(
@@ -255,7 +267,7 @@ def build_db(xml_path: Path, db_path: Path, snapshot_date: str) -> int:
         (str(total),),
     )
     conn.execute(
-        "INSERT INTO metadata(key, value) VALUES ('schema_version', '1')",
+        "INSERT INTO metadata(key, value) VALUES ('schema_version', '3')",
     )
     conn.commit()
     conn.execute("VACUUM")
