@@ -3,3 +3,8 @@
 __pycache__/
 *.pyc
 .venv/
+
+# Raw uncompressed SQLite — only .sqlite.gz is committed
+data/bdu.sqlite
+data/bdu.sqlite-wal
+data/bdu.sqlite-shm

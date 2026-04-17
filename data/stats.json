@@ -4,5 +4,26 @@
   "last_id": "BDU:2026-05547",
   "last_update": "2025-12-31",
   "snapshot_date": "2026-04-18",
-  "source": "https://bdu.fstec.ru/vul"
+  "source": "https://bdu.fstec.ru/vul",
+  "artifacts": {
+    "xml_gz": {
+      "path": "data/vulxml.xml.gz",
+      "size_bytes": 29115230,
+      "format": "gzip(XML)"
+    },
+    "sqlite_gz": {
+      "path": "data/bdu.sqlite.gz",
+      "size_bytes": 49164115,
+      "schema_version": 1,
+      "format": "gzip(SQLite with FTS5)"
+    },
+    "xlsx_vuls": {
+      "path": "data/vullist.xlsx",
+      "format": "XLSX"
+    },
+    "xlsx_threats": {
+      "path": "data/thrlist.xlsx",
+      "format": "XLSX"
+    }
+  }
 }
