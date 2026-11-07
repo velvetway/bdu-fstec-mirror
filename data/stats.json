@@ -13,7 +13,7 @@
     },
     "sqlite_gz": {
       "path": "data/bdu.sqlite.gz",
-      "size_bytes": 59730826,
+      "size_bytes": 59434175,
       "schema_version": 3,
       "format": "gzip(SQLite with FTS5)"
     },
