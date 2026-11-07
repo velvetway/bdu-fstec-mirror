@@ -1,12 +1,12 @@
 # bdu-fstec-mirror — БДУ ФСТЭК скачать без геоблока
 
-[![Snapshot](https://img.shields.io/badge/snapshot-2026--04--18-informational)](data/stats.json)
-[![Vulnerabilities](https://img.shields.io/badge/vulnerabilities-86%2C664-success)](data/stats.json)
-[![BDU range](https://img.shields.io/badge/BDU-2014--00001%20%E2%86%92%202026--05547-blue)](data/stats.json)
+[![Snapshot](https://img.shields.io/badge/snapshot-2026--11--07-informational)](data/stats.json)
+[![Vulnerabilities](https://img.shields.io/badge/vulnerabilities-99%2C397-success)](data/stats.json)
+[![BDU range](https://img.shields.io/badge/BDU-2014--00001%20%E2%86%92%202026--18543-blue)](data/stats.json)
 [![Source](https://img.shields.io/badge/source-bdu.fstec.ru-lightgrey)](https://bdu.fstec.ru/vul)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
-Публичное зеркало **Банка данных угроз безопасности информации ФСТЭК России (БДУ ФСТЭК, bdu.fstec.ru)**. Скачать полную выгрузку уязвимостей можно одной командой `curl` — без VPN, без российского IP, без регистрации. Обновляется на регулярной основе.
+Публичное зеркало **Банка данных угроз безопасности информации ФСТЭК России (БДУ ФСТЭК, bdu.fstec.ru)**. Скачать полную выгрузку уязвимостей можно одной командой `curl` — без VPN, без российского IP, без регистрации. Снимок обновляется вручную с российского IP — дата последнего снимка указана в бейдже и в `data/stats.json`.
 
 Подходит для: CI/CD (GitHub Actions `ubuntu-latest`, AWS, Azure, GCP), LLM-сервисов (Claude, OpenAI), security-тулов (vulners, OpenCTI, Trivy-совместимых сканеров), собственных систем управления уязвимостями и compliance по 152-ФЗ / 187-ФЗ / ГОСТ Р 57580.
 
@@ -16,18 +16,18 @@
 
 | Файл | Описание | Формат | Размер |
 | --- | --- | --- | --- |
-| `data/vulxml.xml.gz` | Полная XML-выгрузка уязвимостей | gzip(XML) | ~28 МБ |
-| `data/bdu.sqlite.gz` | Готовая SQLite-база c FTS5-индексом | gzip(SQLite) | ~50 МБ |
-| `data/vullist.xlsx` | Уязвимости в табличном виде | XLSX | ~29 МБ |
+| `data/vulxml.xml.gz` | Полная XML-выгрузка уязвимостей | gzip(XML) | ~34 МБ |
+| `data/bdu.sqlite.gz` | Готовая SQLite-база c FTS5-индексом | gzip(SQLite) | ~60 МБ |
+| `data/vullist.xlsx` | Уязвимости в табличном виде | XLSX | ~35 МБ |
 | `data/thrlist.xlsx` | Список угроз из БДУ | XLSX | ~96 КБ |
 | `data/stats.json` | Метаинформация снимка | JSON | — |
 
 Текущий снимок:
 
-- **Всего записей:** 86 664
-- **Идентификаторы:** `BDU:2014-00001` → `BDU:2026-05547`
-- **Последнее обновление источника:** 17.04.2026
-- **Дата снимка:** 18.04.2026
+- **Всего записей:** 99 397
+- **Идентификаторы:** `BDU:2014-00001` → `BDU:2026-18543`
+- **Последнее обновление источника:** 06.11.2026
+- **Дата снимка:** 07.11.2026
 - **Схема SQLite:** `schema_version = 3`
 
 ## Зачем
@@ -90,7 +90,7 @@ Composite-индексы для типовых фильтров:
 python scripts/build_db.py \
   --xml data/vulxml.xml.gz \
   --db data/bdu.sqlite \
-  --snapshot-date 2026-04-18
+  --snapshot-date YYYY-MM-DD
 ```
 
 ## Обновление снимка
@@ -132,7 +132,7 @@ git push
 
 ### Насколько часто обновляется?
 
-Снимок пересобирается при любом пуше нового `vulxml.xml.gz` через GitHub Action. Типичная частота — раз в 1–2 недели, зависит от готовности подтянуть свежий XML с RU-источника.
+Снимок пересобирается при любом пуше нового `vulxml.xml.gz` через GitHub Action. Фиксированного расписания нет: XML с `bdu.fstec.ru` можно скачать только с российского IP, поэтому снимок обновляется вручную. Дата текущего снимка — в `data/stats.json`; MCP-сервер сам предупредит, если снимок старше 30 дней.
 
 ### Это легально?
 
@@ -144,7 +144,7 @@ git push
 
 ### Можно ли положить это в свой security-тул?
 
-Да. Достаточно забрать `data/bdu.sqlite.gz` — получаете 86k записей + FTS5-индекс с нулевыми инфраструктурными требованиями. Примеры интеграции: vulners-сканеры, OpenCTI-коннекторы, Trivy-плагины, собственные SIEM-обогатители.
+Да. Достаточно забрать `data/bdu.sqlite.gz` — получаете ~100k записей + FTS5-индекс с нулевыми инфраструктурными требованиями. Примеры интеграции: vulners-сканеры, OpenCTI-коннекторы, Trivy-плагины, собственные SIEM-обогатители.
 
 ### Как помочь?
 

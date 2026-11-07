@@ -173,7 +173,9 @@ def build_db(xml_path: Path, db_path: Path, snapshot_date: str) -> int:
         fix_status = _text(vul.find("fix_status"))
         sources = _text(vul.find("sources"))
         has_exploit = 1 if "существует" in exploit_status.lower() else 0
-        has_fix = 1 if "имеется" in fix_status.lower() else 0
+        # БДУ пишет «Уязвимость устранена» / «Информация об устранении отсутствует».
+        fix_lower = fix_status.lower()
+        has_fix = 1 if ("устранена" in fix_lower or "имеется" in fix_lower) else 0
 
         software_names: list[str] = []
         vendors: list[str] = []
